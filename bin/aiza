@@ -1,0 +1,233 @@
+#!/bin/bash
+
+quit_session=0
+
+set -o allexport
+source $HOME/.aiza
+set +o allexport
+
+function _greeting() {
+
+clear
+
+cat << EOF
+
+  Howdy! My name is Aiza.
+  How can I assist you?
+EOF
+
+}
+
+function _options() {
+
+cat << EOF
+
+  1: Check internet
+  2: Watch cameras
+  3: Open empty black box
+  0: Exit assistant
+EOF
+
+}
+
+function _goodbye() {
+
+echo -e "Alright then,"
+echo -e "You can always summon me by writting \033[1maiza\033[m on the black box.\n"
+
+}
+
+function _camera_options() {
+
+  j=1
+  for i in "${CAMERAS[@]}" ; do
+    cam_name="${i%%::*}"
+    cam_dir="${i#*::}"
+    cam_opt="${cam_dir%%+*}"
+    cam_url="${cam_dir#*+}"
+    printf -- "  ${j}: ${cam_name}\n"
+    j=$((j+1))
+  done
+
+  printf -- "  0: Return to main menu\n"
+
+}
+
+function _camera_selector() {
+
+  printf -- "\n"
+  printf -- "Select a number: "
+  read -n1 ANS
+  printf -- "\n"
+
+  local quit_selector=0
+
+  case $ANS in
+    0)
+      return
+      ;;
+    [1-9])
+      if [[ $ANS -gt "${#CAMERAS[@]}" ]] ; then
+        printf -- "$ANS is out of bounds\n"
+        return
+      fi
+      ANS=$(($ANS-1))
+      camera="${CAMERAS[$ANS]}"
+      cam_dir="${camera#*::}"
+      cam_opt="${cam_dir%%+*}"
+      cam_url="${cam_dir#*+}"
+      $install_path/bin/cctv "$ANS" "$cam_opt" "$cam_url" &>/dev/null &
+      ;;
+    *)
+      printf -- "$ANS is not a number\n"
+      return
+      ;;
+  esac
+
+}
+
+function check_internet_connection() {
+
+  printf -- "Probing Local Area Network (LAN)\n"
+  for i in "${LANDEV[@]}" ; do
+    local _ip="${i#*::}"
+    local _name="${i%%::*}"
+    printf -- ":: Checking %s status..." "$_name"
+    ping -c1 -W5 $_ip &>/dev/null
+
+    if [[ $? -eq 0 ]] ; then
+      printf -- "OK\n"
+    else
+      printf -- "DOWN\n"
+    fi
+
+  done
+
+  printf -- "\n"
+
+  printf -- "Probing Domain Name System (DNS)\n"
+  for i in "${DNSPROV[@]}" ; do
+    local _ip="${i#*::}"
+    local _name="${i%%::*}"
+    printf -- ":: Checking %s status..." "$_name"
+    ping -c1 -W5 $_ip &>/dev/null
+
+    if [[ $? -eq 0 ]] ; then
+      printf -- "OK\n"
+    else
+      printf -- "DOWN\n"
+    fi
+
+  done
+
+}
+
+function open_black_box() {
+
+  local kernel_name=$(uname -s)
+
+  if [[ "$kernel_name" == "Darwin" ]] ; then
+    osascript -e 'tell app "Terminal"
+      do script "echo Summoned by Aiza"
+    end tell'
+  fi
+
+}
+
+function selector() {
+
+  local ANS="$1"
+
+  case $ANS in
+    0)
+      quit_session=1
+      ;;
+    1)
+      check_internet_connection
+      sleep 3
+      ;;
+    2)
+       _camera_options
+       _camera_selector
+      ;;
+    3)
+       open_black_box
+       ;;
+     *)
+       printf -- "Hmm... I don't have $ANS\n"
+       sleep 3
+       ;;
+  esac
+
+}
+
+function selector_legacy() {
+
+local ANS="$1"
+
+  case $ANS in
+    0)
+      quit_session=1
+      ;;
+    1)
+      check_internet_connection
+      sleep 3
+      ;;
+    2)
+      printf -- "Openning frontyard camera..."
+      sleep 3
+      cctv2 frontyard &>/dev/null &
+      printf -- "DONE\n"
+      ;;
+    3)
+      printf -- "Closing frontyard camera..."
+      sleep 3
+      printf -- '1' > $HOME/.local/state/aiza/cameras/0.watchdog
+      echo 'quit' | socat - $HOME/.local/state/aiza/cameras/0.socket
+      ;;
+    4)
+      printf -- "Openning street camera..."
+      sleep 3
+      cctv2 street &>/dev/null &
+      printf -- "DONE\n"
+      ;;
+    5)
+      printf -- "Closing street camera..."
+      sleep 3
+      printf -- '1' > $HOME/.local/state/aiza/cameras/1.watchdog
+      echo 'quit' | socat - $HOME/.local/state/aiza/cameras/1.socket
+      ;;
+    6)
+      printf -- "Openning new window...\n"
+      sleep 3
+      blackbox
+      ;;
+    *)
+      printf -- "Hmm, I don't have %s...\n" $ANS
+      sleep 3
+      ;;
+  esac
+
+}
+
+
+_greeting
+
+while : ; do
+
+  if [[ "$quit_session" -eq 1 ]] ; then
+    _goodbye
+    exit 0
+  fi
+
+  _options
+
+  printf -- "\n"
+  printf -- "Select a number: "
+  read -n1 ANS
+  printf -- "\n"
+
+  printf -- "\n"
+  selector $ANS  
+
+done
