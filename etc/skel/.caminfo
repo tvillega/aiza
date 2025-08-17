@@ -1,0 +1,20 @@
+# Camera 0
+camera_0_name="Cam 0"
+camera_0_ip="10.0.0.10"
+camera_0_pass="ABCD"
+camera_0_fps="60"
+camera_0_audio="--volume 70"
+
+# Camera 1
+camera_1_name="Cam 1"
+camera_1_ip="10.0.0.11"
+camera_1_pass="ABCD"
+camera_1_fps="60"
+camera_1_audio="--no-audio"
+
+# Camera 2
+camera_2_name="Cam 2"
+camera_2_ip="10.0.0.12"
+camera_2_pass="ABCD"
+camera_2_fps="60"
+camera_2_audio="--volume 70"

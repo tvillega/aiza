@@ -1,0 +1,32 @@
+###
+### Skeleton config file for aiza
+###
+
+install_path="$HOME/.local/src/aiza"
+
+# Known devices on LAN
+LANDEV=( router::10.0.0.1
+         rasppi::10.0.0.5
+         camera0::10.0.0.10
+         camera1::10.0.0.11
+         camera2::10.0.0.12 )
+
+# DNS
+DNSPROV=( njalla::95.215.19.53
+          opennic_ny1::162.243.19.47
+          opennic_ny2::168.235.111.72 )
+
+# Radios
+RADIOSTREAM=( cnn::https://radio.cnn.ka
+              cooperativa::https://radio.cooperativara.ka
+              imagina::https://radio.imagina.ka )
+
+# Videos
+VIDEOSTREAM=( cnn::https://video.cnn.ka
+              cooperativa::https://video.cooperativa.ka
+              imagina::https://video.imagina.ka )
+
+# Cameras
+CAMERAS=( camera0::60fps,99vol+rtsp://admin:ABDC@10.0.0.10:554
+          camera1::30fps,00vol+rtsp://admin:EFGH@10.0.0.11:554
+          camera2::15fps,05vol+rtsp://admin:HIJK@10.0.0.12:554 )
