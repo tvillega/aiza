@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Enable job control
+set -m
+
+cam_num="$1"
+cam_opt="$2"
+cam_url="$3"
+
+function err() {
+
+  local l_code="$1"
+  local l_msg="$2"
+
+  printf -- 'Error: %s\n' "$l_msg"
+  exit $l_code
+
+}
+
+# Get camera opts
+cam_fps=$(echo "$cam_opt" | cut -d ',' -f1)
+cam_fps=${cam_fps%%fps}
+cam_audio=$(echo "$cam_opt" | cut -d ',' -f2)
+cam_audio=${cam_audio%%vol}
+
+if [[ "$cam_audio" != "00" ]] ; then
+  cam_audio="--volume=$cam_audio"
+else
+  cam_audio="--no-audio"
+fi
+
+# Def dirs and files
+_aiza="$HOME/.local/state/aiza"
+_session_socket="${_aiza}/cameras/${cam_num}.socket"
+_session_pid="${_aiza}/cameras/${cam_num}.pid"
+_session_watchdog="${_aiza}/cameras/${cam_num}.watchdog"
+
+# Kill prev instance
+if [[ -f "$_session_socket" || -f "$_session_pid" || -f "$_session_watchdog" ]] ; then
+
+  echo "Cleaning previous instance..."
+
+  if [[ -f "$_session_pid" ]] ; then
+    kill -9 $(cat $_session_pid) &>/dev/null
+  fi
+
+  rm "$_session_socket" "$_session_pid" "$_session_watchdog" &>/dev/null
+
+fi
+
+# Init watchdog
+mkdir -p "${_aiza}/cameras"
+printf -- "0" > $_session_watchdog
+
+function fail_connection_handler() {
+
+        printf -- "\n\n\n"
+        printf -- "---------\n"
+        printf -- "Parece haber un problema de internet\n"
+        printf -- "Reintentando en 30 segundos...\n"
+        printf -- "---------"
+        printf -- "\n\n\n"
+        sleep 30
+
+}
+
+function watch_cam() {
+
+  while : ; do
+
+      if [[ $(cat $_session_watchdog) -ne 0 ]] ; then
+        printf 'Quiting graciously\n'
+        rm "$_session_socket" "$_session_pid" "$_session_watchdog" &>/dev/null
+        exit
+      fi
+
+      printf -- "\n"
+
+      timeout 1h mpv \
+        --really-quiet \
+        --no-input-default-bindings \
+        --input-ipc-server="${_session_socket}" \
+        --osd-level=0 \
+        "${cam_audio}" \
+        --profile=low-latency \
+        --vf-add="realtime" \
+        --fs \
+        --no-correct-pts \
+        --container-fps-override="${cam_fps}" \
+        --rtsp-transport=udp \
+        ${cam_url} &
+
+      _pid=$!
+      echo "$_pid" > $_session_pid
+      fg %+
+
+      if [[ $? -ne 0 ]] ; then
+        fail_connection_handler
+      fi
+
+  done
+
+}
+
+watch_cam
