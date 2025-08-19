@@ -76,7 +76,7 @@ function _camera_selector() {
       cam_dir="${camera#*::}"
       cam_opt="${cam_dir%%+*}"
       cam_url="${cam_dir#*+}"
-      AIZA_ROOT=$install_path $install_path/bin/cctv "$ANS" "$cam_opt" "$cam_url" &
+      AIZA_ROOT=$install_path $install_path/bin/cctv "$ANS" "$cam_opt" "$cam_url" &>/dev/null &
       ;;
     *)
       printf -- "$ANS is not a number\n"
