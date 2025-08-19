@@ -17,6 +17,10 @@ function err() {
 
 }
 
+if [[ -z "$AIZA_ROOT" ]] ; then
+  err 253 "Execution outside aiza environment"
+fi
+
 # Get camera opts
 cam_fps=$(echo "$cam_opt" | cut -d ',' -f1)
 cam_fps=${cam_fps%%fps}
@@ -79,8 +83,8 @@ function watch_cam() {
       timeout 1h mpv \
         --really-quiet \
         --no-input-default-bindings \
+        --input-conf="${AIZA_ROOT}/etc/mpv/input.conf" \
         --input-ipc-server="${_session_socket}" \
-        --osd-level=0 \
         "${cam_audio}" \
         --profile=low-latency \
         --vf-add="realtime" \
